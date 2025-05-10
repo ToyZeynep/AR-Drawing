@@ -1,0 +1,107 @@
+//
+//  DetailView.swift
+//  ARDrawing
+//
+//  Created by Zeynep Toy on 10.05.2025.
+//
+
+
+import SwiftUI
+
+struct DetailView: View {
+    var imageURL: String
+
+    @GestureState private var dragOffset = CGSize.zero
+    @State private var position = CGSize.zero
+
+    @GestureState private var currentZoom: CGFloat = 1.0
+    @State private var finalZoom: CGFloat = 1.0
+
+    @GestureState private var rotationAngle: Angle = .zero
+    @State private var finalAngle: Angle = .zero
+
+    @State private var image: UIImage? = nil
+
+    var body: some View {
+        ZStack {
+            CameraView()
+                .edgesIgnoringSafeArea(.all)
+
+            VStack {
+                if let image = image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .opacity(0.4)
+                        .frame(width: 300, height: 300)
+                        .scaleEffect(finalZoom * currentZoom)
+                        .rotationEffect(finalAngle + rotationAngle)
+                        .offset(x: position.width + dragOffset.width,
+                                y: position.height + dragOffset.height)
+                        .gesture(
+                            SimultaneousGesture(
+                                SimultaneousGesture(
+                                    DragGesture()
+                                        .updating($dragOffset) { value, state, _ in
+                                            state = value.translation
+                                        }
+                                        .onEnded { value in
+                                            let newX = position.width + value.translation.width
+                                            let newY = position.height + value.translation.height
+                                            position.width = max(min(newX, 150), -150)
+                                            position.height = max(min(newY, 300), -300)
+                                        },
+                                    MagnificationGesture()
+                                        .updating($currentZoom) { value, state, _ in
+                                            state = value
+                                        }
+                                        .onEnded { value in
+                                            let newZoom = finalZoom * value
+                                            finalZoom = min(max(newZoom, 0.5), 2.5)
+                                        }
+                                ),
+                                RotationGesture()
+                                    .updating($rotationAngle) { value, state, _ in
+                                        state = value
+                                    }
+                                    .onEnded { value in
+                                        finalAngle += value
+                                    }
+                            )
+                        )
+                }
+
+                Spacer()
+
+                Text("Taşı, döndür, yakınlaştır. Sonra kağıda çizmeye başla.")
+                    .padding()
+                    .background(Color.black.opacity(0.5))
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .padding()
+            }
+        }
+        .onAppear {
+            loadImageFromURL(imageURL) { loadedImage in
+                DispatchQueue.main.async {
+                    self.image = loadedImage
+                }
+            }
+        }
+    }
+
+    func loadImageFromURL(_ urlString: String, completion: @escaping (UIImage?) -> Void) {
+        guard let url = URL(string: urlString) else {
+            completion(nil)
+            return
+        }
+
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            if let data = data, let image = UIImage(data: data) {
+                completion(image)
+            } else {
+                completion(nil)
+            }
+        }.resume()
+    }
+}

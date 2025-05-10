@@ -10,9 +10,22 @@
 		2114C7BC2DCFBE50003D5026 /* ARDrawing.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ARDrawing.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2114C7CE2DCFC3E7003D5026 /* Exceptions for "ARDrawing" folder in "ARDrawing" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2114C7BB2DCFBE50003D5026 /* ARDrawing */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2114C7BE2DCFBE50003D5026 /* ARDrawing */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2114C7CE2DCFC3E7003D5026 /* Exceptions for "ARDrawing" folder in "ARDrawing" target */,
+			);
 			path = ARDrawing;
 			sourceTree = "<group>";
 		};
@@ -247,8 +260,11 @@
 				CODE_SIGN_ENTITLEMENTS = ARDrawing/ARDrawing.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CS883PSQ64;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ARDrawing/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Kamera, AR çizim için kullanılmaktadır.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -264,7 +280,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.3;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ARDrawing.ARDrawing;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ARDrawing.ARDrawing.zeynep;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -284,8 +300,11 @@
 				CODE_SIGN_ENTITLEMENTS = ARDrawing/ARDrawing.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CS883PSQ64;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ARDrawing/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Kamera, AR çizim için kullanılmaktadır.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -301,7 +320,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.3;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ARDrawing.ARDrawing;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ARDrawing.ARDrawing.zeynep;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
