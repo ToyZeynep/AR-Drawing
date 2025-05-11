@@ -7,9 +7,11 @@
 
 
 import SwiftUI
+import PhotosUI
 
 struct DetailView: View {
-    var imageURL: String
+    var imageURL: String? = nil
+    var selectedUIImage: UIImage? = nil
 
     @GestureState private var dragOffset = CGSize.zero
     @State private var position = CGSize.zero
@@ -28,47 +30,10 @@ struct DetailView: View {
                 .edgesIgnoringSafeArea(.all)
 
             VStack {
-                if let image = image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .opacity(0.4)
-                        .frame(width: 300, height: 300)
-                        .scaleEffect(finalZoom * currentZoom)
-                        .rotationEffect(finalAngle + rotationAngle)
-                        .offset(x: position.width + dragOffset.width,
-                                y: position.height + dragOffset.height)
-                        .gesture(
-                            SimultaneousGesture(
-                                SimultaneousGesture(
-                                    DragGesture()
-                                        .updating($dragOffset) { value, state, _ in
-                                            state = value.translation
-                                        }
-                                        .onEnded { value in
-                                            let newX = position.width + value.translation.width
-                                            let newY = position.height + value.translation.height
-                                            position.width = max(min(newX, 150), -150)
-                                            position.height = max(min(newY, 300), -300)
-                                        },
-                                    MagnificationGesture()
-                                        .updating($currentZoom) { value, state, _ in
-                                            state = value
-                                        }
-                                        .onEnded { value in
-                                            let newZoom = finalZoom * value
-                                            finalZoom = min(max(newZoom, 0.5), 2.5)
-                                        }
-                                ),
-                                RotationGesture()
-                                    .updating($rotationAngle) { value, state, _ in
-                                        state = value
-                                    }
-                                    .onEnded { value in
-                                        finalAngle += value
-                                    }
-                            )
-                        )
+                if let selectedImage = selectedUIImage {
+                    imageView(image: selectedImage)
+                } else if let image = image {
+                    imageView(image: image)
                 }
 
                 Spacer()
@@ -82,12 +47,58 @@ struct DetailView: View {
             }
         }
         .onAppear {
-            loadImageFromURL(imageURL) { loadedImage in
-                DispatchQueue.main.async {
-                    self.image = loadedImage
+            if let imageURL = imageURL {
+                loadImageFromURL(imageURL) { loadedImage in
+                    DispatchQueue.main.async {
+                        self.image = loadedImage
+                    }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    func imageView(image: UIImage) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .opacity(0.4)
+            .frame(width: 300, height: 300)
+            .scaleEffect(finalZoom * currentZoom)
+            .rotationEffect(finalAngle + rotationAngle)
+            .offset(x: position.width + dragOffset.width,
+                    y: position.height + dragOffset.height)
+            .gesture(
+                SimultaneousGesture(
+                    SimultaneousGesture(
+                        DragGesture()
+                            .updating($dragOffset) { value, state, _ in
+                                state = value.translation
+                            }
+                            .onEnded { value in
+                                let newX = position.width + value.translation.width
+                                let newY = position.height + value.translation.height
+                                position.width = max(min(newX, 150), -150)
+                                position.height = max(min(newY, 300), -300)
+                            },
+                        MagnificationGesture()
+                            .updating($currentZoom) { value, state, _ in
+                                state = value
+                            }
+                            .onEnded { value in
+                                let newZoom = finalZoom * value
+                                finalZoom = min(max(newZoom, 0.5), 2.5)
+                            }
+                    ),
+                    RotationGesture()
+                        .updating($rotationAngle) { value, state, _ in
+                            state = value
+                        }
+                        .onEnded { value in
+                            finalAngle += value
+                        }
+                )
+            )
     }
 
     func loadImageFromURL(_ urlString: String, completion: @escaping (UIImage?) -> Void) {
