@@ -23,6 +23,9 @@ struct DetailView: View {
     @State private var finalAngle: Angle = .zero
 
     @State private var image: UIImage? = nil
+    
+    @State private var showHint = true
+
 
     var body: some View {
         ZStack {
@@ -38,12 +41,15 @@ struct DetailView: View {
 
                 Spacer()
 
-                Text("Taşı, döndür, yakınlaştır. Sonra kağıda çizmeye başla.")
-                    .padding()
-                    .background(Color.black.opacity(0.5))
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .padding()
+                if showHint {
+                    Text("Taşı, döndür, yakınlaştır. Sonra kağıda çizmeye başla.")
+                        .padding()
+                        .background(Color.black.opacity(0.5))
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .padding()
+                        .transition(.opacity)
+                }
             }
         }
         .onAppear {
@@ -52,6 +58,12 @@ struct DetailView: View {
                     DispatchQueue.main.async {
                         self.image = loadedImage
                     }
+                }
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                withAnimation {
+                    showHint = false
                 }
             }
         }
