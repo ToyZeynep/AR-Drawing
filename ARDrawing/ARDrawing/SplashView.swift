@@ -16,13 +16,12 @@ struct SplashView: View {
     var body: some View {
         if isActive {
             ImageListView(categories: categories)
+                .preferredColorScheme(.light)
         } else {
             ZStack {
-                // 🔵 Arka plan
                 Color(red: 203/255, green: 237/255, blue: 253/255)
                     .ignoresSafeArea()
 
-                // 🎞 GIF içeriği
                 AnimatedImage(name: "splash.gif")
                     .resizable()
                     .scaledToFit()

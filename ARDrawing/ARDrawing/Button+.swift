@@ -10,10 +10,12 @@ import SwiftUI
 extension Button {
     public func buttonStylePrimary(color: Color) -> some View {
         self
-            .padding(.vertical, 10)
-            .padding(.horizontal, 16)
+            .frame(minWidth: 0, maxWidth: .infinity)
+            .frame(height: 55)
             .background(color)
             .foregroundColor(.white)
-            .cornerRadius(8)
+            .font(.headline)
+            .cornerRadius(12)
+            .padding(.horizontal)
     }
 }

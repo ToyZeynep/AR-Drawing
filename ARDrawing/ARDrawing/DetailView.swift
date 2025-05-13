@@ -37,12 +37,19 @@ struct DetailView: View {
                     imageView(image: selectedImage)
                 } else if let image = image {
                     imageView(image: image)
+                } else {
+                    Text("Failed to load image.")
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(Color.black.opacity(0.5))
+                        .cornerRadius(10)
+                        .padding()
                 }
 
                 Spacer()
 
                 if showHint {
-                    Text("Taşı, döndür, yakınlaştır. Sonra kağıda çizmeye başla.")
+                    Text("Move, rotate, zoom. Then start tracing on paper.")
                         .padding()
                         .background(Color.black.opacity(0.5))
                         .foregroundColor(.white)
@@ -91,7 +98,7 @@ struct DetailView: View {
                                 let newX = position.width + value.translation.width
                                 let newY = position.height + value.translation.height
                                 position.width = max(min(newX, 150), -150)
-                                position.height = max(min(newY, 300), -300)
+                                position.height = max(min(newY, 450), -150)
                             },
                         MagnificationGesture()
                             .updating($currentZoom) { value, state, _ in
