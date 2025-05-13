@@ -8,9 +8,10 @@
 
 import SwiftUI
 import PhotosUI
-import Kingfisher
+import SDWebImageSwiftUI
 
 // MARK: - Model
+
 struct Category: Codable, Identifiable {
     var id: UUID { UUID() }
     let name: String
@@ -25,96 +26,39 @@ struct ImageListResponse: Codable {
     let categories: [Category]
 }
 
+// MARK: - View
+
 struct ImageListView: View {
-    @State private var categories: [Category] = []
-    @State private var isLoading = true
-    
+    let categories: [Category]
+
     @State private var showGalleryPicker = false
     @State private var showCameraPicker = false
     @State private var selectedImage: UIImage? = nil
     @State private var navigateToDetail = false
 
     let columns = Array(repeating: GridItem(.flexible()), count: 3)
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 16) {
-                    
-                    // 📸 Butonlar
-                    HStack(spacing: 12) {
-                        Button("Galeriden Seç") {
-                            showGalleryPicker = true
-                        }
-                        .buttonStylePrimary(color: .blue)
+                    actionButtons
+                        .padding(.top)
 
-                        Button("Kamera ile Çek") {
-                            showCameraPicker = true
-                        }
-                        .buttonStylePrimary(color: .green)
-                    }
-                    .padding(.top)
-
-                    // 🔄 Yükleme durumu
-                    if isLoading {
-                        ProgressView("Yükleniyor...")
-                            .padding()
-                    } else {
-                        // 📦 Kategori listesi
-                        ForEach(categories) { category in
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(category.name)
-                                    .font(.headline)
-                                    .padding(.horizontal)
-
-                                LazyVGrid(columns: columns, spacing: 12) {
-                                    ForEach(category.images, id: \.self) { url in
-                                        NavigationLink(destination: DetailView(imageURL: url)) {
-                                            KFImage(URL(string: url))
-                                                .resizable()
-                                                .placeholder {
-                                                    ProgressView()
-                                                        .frame(width: 100, height: 100)
-                                                }
-                                                .cancelOnDisappear(true)
-                                                .scaledToFill()
-                                                .frame(width: 100, height: 100)
-                                                .clipped()
-                                                .cornerRadius(8)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                        .padding(.bottom)
+                    ForEach(categories) { category in
+                        categorySection(for: category)
                     }
                 }
+                .padding(.bottom)
             }
             .navigationTitle("Boyama Görselleri")
-            .onAppear {
-                fetchImageList { fetched in
-                    DispatchQueue.main.async {
-                        self.categories = fetched
-                        self.isLoading = false
-                    }
-                }
-            }
             .sheet(isPresented: $showGalleryPicker) {
                 ImagePicker(selectedImage: $selectedImage)
-                    .onDisappear {
-                        if selectedImage != nil {
-                            navigateToDetail = true
-                        }
-                    }
+                    .onDisappear { handleImageSelection() }
             }
             .sheet(isPresented: $showCameraPicker) {
                 CameraPicker(selectedImage: $selectedImage)
-                    .onDisappear {
-                        if selectedImage != nil {
-                            navigateToDetail = true
-                        }
-                    }
+                    .onDisappear { handleImageSelection() }
             }
             .background(
                 NavigationLink(destination: DetailView(imageURL: nil, selectedUIImage: selectedImage),
@@ -126,25 +70,52 @@ struct ImageListView: View {
         }
     }
 
-    func fetchImageList(completion: @escaping ([Category]) -> Void) {
-        guard let url = URL(string: "https://toyzeynep.github.io/line-art-api/images.json") else {
-            completion([])
-            return
+    // MARK: - Alt Görünümler
+
+    private var actionButtons: some View {
+        HStack(spacing: 12) {
+            Button("Galeriden Seç") {
+                showGalleryPicker = true
+            }
+            .buttonStylePrimary(color: .blue)
+
+            Button("Kamera ile Çek") {
+                showCameraPicker = true
+            }
+            .buttonStylePrimary(color: .green)
         }
+    }
 
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data else {
-                completion([])
-                return
-            }
+    @ViewBuilder
+    private func categorySection(for category: Category) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(category.name)
+                .font(.headline)
+                .padding(.horizontal)
 
-            do {
-                let decoded = try JSONDecoder().decode(ImageListResponse.self, from: data)
-                completion(decoded.categories)
-            } catch {
-                print("JSON decoding error: \(error)")
-                completion([])
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(category.images, id: \.self) { url in
+                    NavigationLink(destination: DetailView(imageURL: url)) {
+                        WebImage(url: URL(string: url))
+                            .resizable()
+                            .indicator(.activity)
+                            .transition(.fade(duration: 0.3))
+                            .scaledToFill()
+                            .frame(width: 100, height: 100)
+                            .clipped()
+                            .cornerRadius(8)
+                    }
+                }
             }
-        }.resume()
+            .padding(.horizontal)
+        }
+    }
+
+    // MARK: - Yardımcı Fonksiyonlar
+
+    private func handleImageSelection() {
+        if selectedImage != nil {
+            navigateToDetail = true
+        }
     }
 }
