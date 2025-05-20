@@ -26,10 +26,13 @@ struct ImageListResponse: Codable {
     let categories: [Category]
 }
 
+// MARK: - Enum for Tracing Mode
 enum TracingMode {
     case trace
     case scratch
 }
+
+// MARK: - View
 
 struct ImageListView: View {
     let categories: [Category]
@@ -39,6 +42,8 @@ struct ImageListView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var navigateToDetail = false
     @State private var selectedMode: TracingMode = .trace
+    @State private var showFullCategories = false
+    @State private var selectedCategoryIndex = 0
     
     let columns = Array(repeating: GridItem(.flexible()), count: 3)
     
@@ -46,33 +51,27 @@ struct ImageListView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 16) {
-                    
-                    Text("Drawing Mode")
-                        .font(.title3)
-                        .bold()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                        .padding(.top, 12)
-                    
-                    tracingModeButtons
-                        .padding(.top, 4)
-                    
-                    Text("Import from")
-                        .font(.title3)
-                        .bold()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                        .padding(.top, 8)
 
-                    actionButtons
+                        Picker("Mode", selection: $selectedMode) {
+                            
+                            Text("Trace")
+                                .tag(TracingMode.trace)
+                            
+                            Text("Scratch")
+                                .tag(TracingMode.scratch)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding(.horizontal)
+                    
+                    Text("Select Image")
+                          .font(.title3)
+                          .bold()
+                          .frame(maxWidth: .infinity, alignment: .leading)
+                          .padding(.horizontal)
+                          .padding(.top, 8)
+                    
+                    importButtons
                         .padding(.top)
-
-                    Text("Choose a topic")
-                        .font(.title3)
-                        .bold()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
-                        .padding(.top, 8)
                     
                     ForEach(categories) { category in
                         categorySection(for: category)
@@ -99,24 +98,9 @@ struct ImageListView: View {
         }
     }
     
-    private var tracingModeButtons: some View {
-        HStack(spacing: 8) {
-            Button("Trace") {
-                selectedMode = .trace
-            }
-            .buttonStylePrimary(color: selectedMode == .trace ? .blue : .gray)
-            
-            Button("Scratch") {
-                selectedMode = .scratch
-            }
-            .buttonStylePrimary(color: selectedMode == .scratch ? .blue : .gray)
-        }
-        .padding(.horizontal)
-    }
-    
-    private var actionButtons: some View {
+    private var importButtons: some View {
         HStack(spacing: 5) {
-            Button("Select from Gallery") {
+            Button("From Gallery") {
                 showGalleryPicker = true
             }
             .buttonStylePrimary(color: .blue)
@@ -157,5 +141,18 @@ struct ImageListView: View {
         if selectedImage != nil {
             navigateToDetail = true
         }
+    }
+}
+
+// MARK: - Button Style
+extension View {
+    func buttonStylePrimary(color: Color) -> some View {
+        self
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(color)
+            .foregroundColor(.white)
+            .cornerRadius(10)
+            .padding(.horizontal, 5)
     }
 }
