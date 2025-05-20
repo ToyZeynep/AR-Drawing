@@ -26,7 +26,10 @@ struct ImageListResponse: Codable {
     let categories: [Category]
 }
 
-// MARK: - View
+enum TracingMode {
+    case trace
+    case scratch
+}
 
 struct ImageListView: View {
     let categories: [Category]
@@ -35,6 +38,7 @@ struct ImageListView: View {
     @State private var showCameraPicker = false
     @State private var selectedImage: UIImage? = nil
     @State private var navigateToDetail = false
+    @State private var selectedMode: TracingMode = .trace
     
     let columns = Array(repeating: GridItem(.flexible()), count: 3)
     
@@ -43,22 +47,32 @@ struct ImageListView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     
+                    Text("Drawing Mode")
+                        .font(.title3)
+                        .bold()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.top, 12)
+                    
+                    tracingModeButtons
+                        .padding(.top, 4)
+                    
                     Text("Import from")
-                          .font(.title3)
-                          .bold()
-                          .frame(maxWidth: .infinity, alignment: .leading)
-                          .padding(.horizontal)
-                          .padding(.top, 12)
+                        .font(.title3)
+                        .bold()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
 
-                      actionButtons
-                          .padding(.top)
+                    actionButtons
+                        .padding(.top)
 
-                      Text("Choose a topic")
-                          .font(.title3)
-                          .bold()
-                          .frame(maxWidth: .infinity, alignment: .leading)
-                          .padding(.horizontal)
-                          .padding(.top, 8)
+                    Text("Choose a topic")
+                        .font(.title3)
+                        .bold()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
                     
                     ForEach(categories) { category in
                         categorySection(for: category)
@@ -76,13 +90,28 @@ struct ImageListView: View {
                     .onDisappear { handleImageSelection() }
             }
             .background(
-                NavigationLink(destination: DetailView(imageURL: nil, selectedUIImage: selectedImage),
+                NavigationLink(destination: DetailView(imageURL: nil, selectedUIImage: selectedImage, tracingMode: selectedMode),
                                isActive: $navigateToDetail) {
                                    EmptyView()
                                }
                     .hidden()
             )
         }
+    }
+    
+    private var tracingModeButtons: some View {
+        HStack(spacing: 8) {
+            Button("Trace") {
+                selectedMode = .trace
+            }
+            .buttonStylePrimary(color: selectedMode == .trace ? .blue : .gray)
+            
+            Button("Scratch") {
+                selectedMode = .scratch
+            }
+            .buttonStylePrimary(color: selectedMode == .scratch ? .blue : .gray)
+        }
+        .padding(.horizontal)
     }
     
     private var actionButtons: some View {
@@ -108,7 +137,7 @@ struct ImageListView: View {
             
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(category.images, id: \.self) { url in
-                    NavigationLink(destination: DetailView(imageURL: url)) {
+                    NavigationLink(destination: DetailView(imageURL: url, tracingMode: selectedMode)) {
                         WebImage(url: URL(string: url))
                             .resizable()
                             .indicator(.activity)
