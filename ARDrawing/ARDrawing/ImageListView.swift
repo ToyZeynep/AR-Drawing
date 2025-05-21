@@ -5,7 +5,6 @@
 //  Created by Zeynep Toy on 10.05.2025.
 //
 
-
 import SwiftUI
 import PhotosUI
 import SDWebImageSwiftUI
@@ -42,8 +41,7 @@ struct ImageListView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var navigateToDetail = false
     @State private var selectedMode: TracingMode = .trace
-    @State private var showFullCategories = false
-    @State private var selectedCategoryIndex = 0
+    @State private var expandedCategories: [String: Bool] = [:]
     
     let columns = Array(repeating: GridItem(.flexible()), count: 3)
     
@@ -51,30 +49,28 @@ struct ImageListView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 16) {
-
-                        Picker("Mode", selection: $selectedMode) {
-                            
-                            Text("Trace")
-                                .tag(TracingMode.trace)
-                            
-                            Text("Scratch")
-                                .tag(TracingMode.scratch)
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                        .padding(.horizontal)
+                    Picker("Mode", selection: $selectedMode) {
+                        Text("Trace")
+                            .tag(TracingMode.trace)
+                        
+                        Text("Scratch")
+                            .tag(TracingMode.scratch)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.horizontal)
                     
                     Text("Select Image")
-                          .font(.title3)
-                          .bold()
-                          .frame(maxWidth: .infinity, alignment: .leading)
-                          .padding(.horizontal)
-                          .padding(.top, 8)
+                        .font(.title3)
+                        .bold()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
                     
                     importButtons
                         .padding(.top)
                     
                     ForEach(categories) { category in
-                        categorySection(for: category)
+                        categoryAccordion(for: category)
                     }
                 }
                 .padding(.bottom)
@@ -91,9 +87,9 @@ struct ImageListView: View {
             .background(
                 NavigationLink(destination: DetailView(imageURL: nil, selectedUIImage: selectedImage, tracingMode: selectedMode),
                                isActive: $navigateToDetail) {
-                                   EmptyView()
-                               }
-                    .hidden()
+                    EmptyView()
+                }
+                .hidden()
             )
         }
     }
@@ -113,28 +109,55 @@ struct ImageListView: View {
     }
     
     @ViewBuilder
-    private func categorySection(for category: Category) -> some View {
+    private func categoryAccordion(for category: Category) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(category.name)
-                .font(.headline)
-                .padding(.horizontal)
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    expandedCategories[category.name] = !(expandedCategories[category.name] ?? false)
+                }
+            }) {
+                HStack {
+                    Text(category.name)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Image(systemName: (expandedCategories[category.name] ?? false) ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 16, weight: .medium))
+                        .animation(.easeInOut, value: expandedCategories[category.name])
+                }
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal)
             
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(category.images, id: \.self) { url in
-                    NavigationLink(destination: DetailView(imageURL: url, tracingMode: selectedMode)) {
-                        WebImage(url: URL(string: url))
-                            .resizable()
-                            .indicator(.activity)
-                            .transition(.fade(duration: 0.3))
-                            .scaledToFill()
-                            .frame(width: 100, height: 100)
-                            .clipped()
-                            .cornerRadius(8)
+            if expandedCategories[category.name] ?? false {
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(category.images, id: \.self) { url in
+                        NavigationLink(destination: DetailView(imageURL: url, tracingMode: selectedMode)) {
+                            WebImage(url: URL(string: url))
+                                .resizable()
+                                .indicator(.activity)
+                                .transition(.fade(duration: 0.3))
+                                .scaledToFill()
+                                .frame(width: 100, height: 100)
+                                .clipped()
+                                .cornerRadius(8)
+                        }
                     }
                 }
+                .padding(.horizontal)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            .padding(.horizontal)
         }
+        .padding(.vertical, 4)
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .padding(.horizontal)
     }
     
     private func handleImageSelection() {
