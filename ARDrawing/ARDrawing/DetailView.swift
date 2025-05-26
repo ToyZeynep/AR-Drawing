@@ -89,7 +89,6 @@ struct DetailView: View {
                         .padding(.bottom, 20)
                     }
                     .onAppear {
-                        
                         screenSize = geometry.size
                         
                         if tracingMode == .scratch {
@@ -128,6 +127,8 @@ struct DetailView: View {
                 }
             }
         }
+        .navigationBarBackButtonHidden(isLocked)
+        .navigationBarHidden(isLocked)
     }
     
     private func getHintText() -> String {
@@ -140,9 +141,7 @@ struct DetailView: View {
     
     private func centerImage() {
         position = .zero
- 
         finalZoom = 1.0
-   
         finalAngle = .zero
     }
 
