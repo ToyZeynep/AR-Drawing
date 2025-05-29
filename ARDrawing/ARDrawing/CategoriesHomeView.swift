@@ -16,6 +16,7 @@ struct Category: Codable, Identifiable {
     let id: String
     let name: String
     let order: Int
+    let isActive: Bool
     let images: [String]
     
     var uiId: UUID { UUID() }
@@ -30,6 +31,7 @@ struct CategoryPreview: Codable, Identifiable {
     let id: String
     let name: String
     let order: Int
+    let isActive: Bool
     let imageCount: Int
     let previewImage: String
     
@@ -49,37 +51,46 @@ class CategoryService: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        db.collection("categories").order(by: "order").getDocuments { [weak self] snapshot, error in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if let error = error {
-                    self?.errorMessage = error.localizedDescription
-                    return
-                }
-                
-                guard let documents = snapshot?.documents else {
-                    self?.errorMessage = "No categories found"
-                    return
-                }
-                
-                self?.categories = documents.compactMap { doc in
-                    let data = doc.data()
-                    guard let name = data["name"] as? String,
-                          let order = data["order"] as? Int,
-                          let images = data["images"] as? [String],
-                          !images.isEmpty else { return nil }
+        db.collection("categories")
+            .order(by: "order")
+            .getDocuments { [weak self] snapshot, error in
+                DispatchQueue.main.async {
+                    self?.isLoading = false
                     
-                    return CategoryPreview(
-                        id: doc.documentID,
-                        name: name,
-                        order: order,
-                        imageCount: images.count,
-                        previewImage: images.first ?? ""
-                    )
+                    if let error = error {
+                        self?.errorMessage = error.localizedDescription
+                        return
+                    }
+                    
+                    guard let documents = snapshot?.documents else {
+                        self?.errorMessage = "No active categories found"
+                        return
+                    }
+                    
+                    self?.categories = documents.compactMap { doc in
+                        let data = doc.data()
+                        guard let name = data["name"] as? String,
+                              let order = data["order"] as? Int,
+                              let isActive = data["isActive"] as? Bool,
+                              let images = data["images"] as? [String],
+                              !images.isEmpty,
+                              isActive == true else { return nil }
+                        
+                        return CategoryPreview(
+                            id: doc.documentID,
+                            name: name,
+                            order: order,
+                            isActive: isActive,
+                            imageCount: images.count,
+                            previewImage: images.first ?? ""
+                        )
+                    }
+
+                    if self?.categories.isEmpty == true {
+                        self?.errorMessage = "No active categories available at the moment"
+                    }
                 }
             }
-        }
     }
     
     func fetchCategoryDetail(categoryId: String, completion: @escaping (Category?) -> Void) {
@@ -93,7 +104,9 @@ class CategoryService: ObservableObject {
             guard let data = snapshot?.data(),
                   let name = data["name"] as? String,
                   let order = data["order"] as? Int,
-                  let images = data["images"] as? [String] else {
+                  let isActive = data["isActive"] as? Bool,
+                  let images = data["images"] as? [String],
+                  isActive == true else {
                 completion(nil)
                 return
             }
@@ -102,6 +115,7 @@ class CategoryService: ObservableObject {
                 id: categoryId,
                 name: name,
                 order: order,
+                isActive: isActive,
                 images: images
             )
             completion(category)
@@ -159,17 +173,56 @@ struct CategoriesHomeView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("Browse Categories")
-                            .font(.headline)
-                            .padding(.horizontal)
+                        HStack {
+                            Text("Browse Categories")
+                                .font(.headline)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                categoryService.fetchCategories()
+                            }) {
+                                Image(systemName: "arrow.clockwise")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        .padding(.horizontal)
                         
                         if categoryService.isLoading {
                             ProgressView("Loading categories...")
                                 .frame(maxWidth: .infinity, minHeight: 200)
                         } else if let errorMessage = categoryService.errorMessage {
-                            Text("Error: \(errorMessage)")
-                                .foregroundColor(.red)
-                                .padding()
+                            VStack(spacing: 16) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.largeTitle)
+                                    .foregroundColor(.orange)
+                                
+                                Text(errorMessage)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                                
+                                Button("Retry") {
+                                    categoryService.fetchCategories()
+                                }
+                                .buttonStylePrimary(color: .blue)
+                                .frame(width: 120)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                        } else if categoryService.categories.isEmpty {
+                            VStack(spacing: 16) {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.largeTitle)
+                                    .foregroundColor(.gray)
+                                
+                                Text("No categories available")
+                                    .foregroundColor(.secondary)
+                                
+                                Text("Categories will be available soon!")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 200)
                         } else {
                             LazyVGrid(columns: columns, spacing: 16) {
                                 ForEach(categoryService.categories) { category in
