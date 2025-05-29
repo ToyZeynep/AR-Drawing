@@ -70,7 +70,6 @@ struct DetailView: View {
                         }
                         
                         HStack(spacing: 16) {
-                            // Opacity Settings Button
                             Button(action: {
                                 withAnimation(.spring()) {
                                     showOpacitySettings.toggle()
@@ -90,7 +89,6 @@ struct DetailView: View {
                                 .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
                             }
                             
-                            // Lock Screen Button
                             Button(action: {
                                 withAnimation(.spring()) {
                                     isLocked.toggle()
@@ -153,7 +151,6 @@ struct DetailView: View {
                     }
                 }
                 
-                // Opacity Settings Overlay
                 if showOpacitySettings {
                     ZStack {
                         Color.black.opacity(0.4)
