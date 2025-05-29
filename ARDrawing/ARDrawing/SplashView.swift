@@ -52,16 +52,6 @@ struct SplashView: View {
                             .foregroundColor(.white)
                             .cornerRadius(8)
                         }
-                    } else if !isInitialized {
-                        VStack(spacing: 8) {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                                .scaleEffect(1.2)
-                            
-                            Text("Initializing...")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
                     }
                 }
             }

@@ -5,7 +5,6 @@
 //  Created by Zeynep Toy on 10.05.2025.
 //
 
-
 import SwiftUI
 import PhotosUI
 
@@ -25,6 +24,8 @@ struct DetailView: View {
     @State private var finalAngle: Angle = .zero
     @State private var showHint = true
     @State private var image: UIImage? = nil
+    @State private var imageOpacity: Double = 0.4
+    @State private var showOpacitySettings = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -68,23 +69,46 @@ struct DetailView: View {
                                 .transition(.opacity)
                         }
                         
-                        Button(action: {
-                            withAnimation(.spring()) {
-                                isLocked.toggle()
+                        HStack(spacing: 16) {
+                            // Opacity Settings Button
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    showOpacitySettings.toggle()
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "slider.horizontal.3")
+                                        .font(.system(size: 18))
+                                    Text("Opacity")
+                                        .font(.system(size: 14, weight: .medium))
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(showOpacitySettings ? Color.blue.opacity(0.8) : Color.gray.opacity(0.7))
+                                .foregroundColor(.white)
+                                .cornerRadius(20)
+                                .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
                             }
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: isLocked ? "lock.fill" : "lock.open.fill")
-                                    .font(.system(size: 18))
-                                Text(isLocked ? "Screen Locked" : "Lock Screen")
-                                    .font(.system(size: 14, weight: .medium))
+                            
+                            // Lock Screen Button
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    isLocked.toggle()
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: isLocked ? "lock.fill" : "lock.open.fill")
+                                        .font(.system(size: 18))
+                                    Text(isLocked ? "Screen Locked" : "Lock Screen")
+                                        .font(.system(size: 14, weight: .medium))
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(isLocked ? Color.green.opacity(0.8) : Color.gray.opacity(0.7))
+                                .foregroundColor(.white)
+                                .cornerRadius(20)
+                                .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(isLocked ? Color.green.opacity(0.8) : Color.gray.opacity(0.7))
-                            .foregroundColor(.white)
-                            .cornerRadius(20)
-                            .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
                         }
                         .padding(.bottom, 20)
                     }
@@ -94,6 +118,7 @@ struct DetailView: View {
                         if tracingMode == .scratch {
                             centerImage()
                             setMaxBrightness()
+                            imageOpacity = 1.0
                         }
                         
                         if let imageURL = imageURL {
@@ -117,13 +142,73 @@ struct DetailView: View {
                         if newMode == .scratch {
                             centerImage()
                             setMaxBrightness()
+                            imageOpacity = 1.0
                         } else {
                             restoreBrightness()
+                            imageOpacity = 0.4
                         }
                     }
                     .onDisappear {
                         restoreBrightness()
                     }
+                }
+                
+                // Opacity Settings Overlay
+                if showOpacitySettings {
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .edgesIgnoringSafeArea(.all)
+                            .onTapGesture {
+                                withAnimation(.spring()) {
+                                    showOpacitySettings = false
+                                }
+                            }
+                        
+                        VStack(spacing: 12) {
+                            Text("Opacity")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                            
+                            VStack(spacing: 4) {
+                                HStack {
+                                    Text("0%")
+                                        .foregroundColor(.white)
+                                        .font(.caption2)
+                                    Spacer()
+                                    Text("\(Int(imageOpacity * 100))%")
+                                        .foregroundColor(.white)
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                    Spacer()
+                                    Text("100%")
+                                        .foregroundColor(.white)
+                                        .font(.caption2)
+                                }
+                                
+                                Slider(value: $imageOpacity, in: 0.0...1.0, step: 0.05)
+                                    .accentColor(.blue)
+                                    .frame(height: 16)
+                            }
+                            
+                            Button("Done") {
+                                withAnimation(.spring()) {
+                                    showOpacitySettings = false
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 6)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(16)
+                        }
+                        .padding(16)
+                        .background(Color.black.opacity(0.8))
+                        .cornerRadius(16)
+                        .padding(.horizontal, 50)
+                        .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
+                        .offset(y: 240)
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
             }
         }
@@ -161,7 +246,7 @@ struct DetailView: View {
         Image(uiImage: image)
             .resizable()
             .scaledToFit()
-            .opacity(tracingMode == .trace ? 0.4 : 1.0)
+            .opacity(imageOpacity)
             .frame(width: 300, height: 300)
             .scaleEffect(finalZoom * currentZoom)
             .rotationEffect(finalAngle + rotationAngle)
