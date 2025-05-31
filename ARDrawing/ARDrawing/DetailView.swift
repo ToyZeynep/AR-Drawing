@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PhotosUI
+import StoreKit
 
 struct DetailView: View {
     var imageURL: String? = nil
@@ -176,6 +177,7 @@ struct DetailView: View {
                     }
                     .onDisappear {
                         restoreBrightness()
+                        incrementUsageAndRequestReview()
                     }
                 }
                 
@@ -263,6 +265,31 @@ struct DetailView: View {
     private func restoreBrightness() {
         if previousBrightness > 0 {
             UIScreen.main.brightness = previousBrightness
+        }
+    }
+    
+    // MARK: - App Store Review Request
+    private func incrementUsageAndRequestReview() {
+        let currentCount = UserDefaults.standard.integer(forKey: "trace_usage_count")
+        let newCount = currentCount + 1
+        UserDefaults.standard.set(newCount, forKey: "trace_usage_count")
+        
+        let shouldRequestReview = newCount == 3 || (newCount > 3 && (newCount - 3) % 10 == 0)
+        
+        if shouldRequestReview {
+            requestReview()
+        }
+    }
+    
+    private func requestReview() {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+            return
+        }
+        
+        if #available(iOS 14.0, *) {
+            SKStoreReviewController.requestReview(in: scene)
+        } else {
+            SKStoreReviewController.requestReview()
         }
     }
 
