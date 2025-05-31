@@ -70,28 +70,34 @@ struct DetailView: View {
                         }
                         
                         HStack(spacing: 16) {
-                            Button(action: {
-                                withAnimation(.spring()) {
-                                    showOpacitySettings.toggle()
+                            if !isLocked {
+                                Button(action: {
+                                    withAnimation(.spring()) {
+                                        showOpacitySettings.toggle()
+                                    }
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "slider.horizontal.3")
+                                            .font(.system(size: 18))
+                                        Text("Opacity")
+                                            .font(.system(size: 14, weight: .medium))
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
+                                    .background(showOpacitySettings ? Color.blue.opacity(0.8) : Color.gray.opacity(0.7))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(20)
+                                    .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
                                 }
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "slider.horizontal.3")
-                                        .font(.system(size: 18))
-                                    Text("Opacity")
-                                        .font(.system(size: 14, weight: .medium))
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 12)
-                                .background(showOpacitySettings ? Color.blue.opacity(0.8) : Color.gray.opacity(0.7))
-                                .foregroundColor(.white)
-                                .cornerRadius(20)
-                                .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
+                                .transition(.opacity.combined(with: .scale))
                             }
                             
                             Button(action: {
                                 withAnimation(.spring()) {
                                     isLocked.toggle()
+                                    if !isLocked && showOpacitySettings {
+                                        showOpacitySettings = false
+                                    }
                                 }
                             }) {
                                 HStack(spacing: 8) {
@@ -106,6 +112,28 @@ struct DetailView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(20)
                                 .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
+                            }
+                            
+                            if !isLocked {
+                                Button(action: {
+                                    withAnimation(.spring()) {
+                                        centerImage()
+                                    }
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "arrow.counterclockwise")
+                                            .font(.system(size: 18))
+                                        Text("Reset")
+                                            .font(.system(size: 14, weight: .medium))
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
+                                    .background(Color.orange.opacity(0.7))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(20)
+                                    .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 2)
+                                }
+                                .transition(.opacity.combined(with: .scale))
                             }
                         }
                         .padding(.bottom, 20)
@@ -240,12 +268,14 @@ struct DetailView: View {
 
     @ViewBuilder
     func imageView(image: UIImage) -> some View {
+        let totalZoom = finalZoom * currentZoom
+        
         Image(uiImage: image)
             .resizable()
             .scaledToFit()
-            .opacity(imageOpacity)
+            .opacity(totalZoom < 0.01 ? 0.01 : imageOpacity)
             .frame(width: 300, height: 300)
-            .scaleEffect(finalZoom * currentZoom)
+            .scaleEffect(max(totalZoom, 0.01))
             .rotationEffect(finalAngle + rotationAngle)
             .offset(x: position.width + dragOffset.width,
                     y: position.height + dragOffset.height)
@@ -261,16 +291,18 @@ struct DetailView: View {
                                 .onEnded { value in
                                     let newX = position.width + value.translation.width
                                     let newY = position.height + value.translation.height
-                                    position.width = max(min(newX, 150), -150)
-                                    position.height = max(min(newY, 450), -150)
+                                    position.width = newX
+                                    position.height = newY
                                 },
                             MagnificationGesture()
                                 .updating($currentZoom) { value, state, _ in
-                                    state = value
+                                    let limitedValue = min(max(value, 0.5), 3.0)
+                                    state = limitedValue
                                 }
                                 .onEnded { value in
-                                    let newZoom = finalZoom * value
-                                    finalZoom = min(max(newZoom, 0.5), 2.5)
+                                    let limitedValue = min(max(value, 0.5), 3.0)
+                                    let newZoom = finalZoom * limitedValue
+                                    finalZoom = min(max(newZoom, 0.1), 5.0)
                                 }
                         ),
                         RotationGesture()
