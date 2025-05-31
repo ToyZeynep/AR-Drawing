@@ -13,6 +13,10 @@ struct ARDrawingApp: App {
 
     init() {
         FirebaseApp.configure()
+        
+    #if DEBUG
+        Analytics.setAnalyticsCollectionEnabled(true)
+        #endif
     }
     
     var body: some Scene {

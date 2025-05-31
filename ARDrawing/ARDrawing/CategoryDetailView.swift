@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SDWebImageSwiftUI
+import FirebaseAnalytics
 
 // MARK: - Category Detail View
 
@@ -60,7 +61,7 @@ struct CategoryDetailView: View {
                     
                 } else if let category = category {
                     LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(category.images, id: \.self) { imageURL in
+                        ForEach(Array(category.images.enumerated()), id: \.offset) { index, imageURL in
                             NavigationLink(destination: DetailView(
                                 imageURL: imageURL,
                                 tracingMode: tracingMode
@@ -68,6 +69,17 @@ struct CategoryDetailView: View {
                                 ImageGridItem(imageURL: imageURL)
                             }
                             .buttonStyle(PlainButtonStyle())
+                            .simultaneousGesture(
+                                TapGesture().onEnded {
+                                    Analytics.logEvent("image_selected", parameters: [
+                                        "source": "category",
+                                        "category_name": categoryName,
+                                        "category_id": categoryId,
+                                        "image_index": index,
+                                        "mode": tracingMode == .trace ? "trace" : "scratch"
+                                    ])
+                                }
+                            )
                         }
                     }
                     .padding(.horizontal)
@@ -93,6 +105,12 @@ struct CategoryDetailView: View {
                 if let fetchedCategory = fetchedCategory {
                     self.category = fetchedCategory
                 } else {
+                    Analytics.logEvent("category_load_failed", parameters: [
+                        "error_message": "Failed to load category images",
+                        "category_id": categoryId,
+                        "category_name": categoryName,
+                        "location": "category_detail_view"
+                    ])
                     self.errorMessage = "Failed to load category images"
                 }
             }
@@ -104,8 +122,6 @@ struct CategoryDetailView: View {
 
 struct ImageGridItem: View {
     let imageURL: String
-    @State private var isLoading = true
-    @State private var loadFailed = false
     
     var body: some View {
         WebImage(url: URL(string: imageURL))
@@ -116,24 +132,6 @@ struct ImageGridItem: View {
             .frame(height: 150)
             .clipped()
             .cornerRadius(8)
-            .overlay(
-                Group {
-                    if loadFailed {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.gray.opacity(0.3))
-                            .overlay(
-                                VStack(spacing: 4) {
-                                    Image(systemName: "photo")
-                                        .font(.system(size: 20))
-                                        .foregroundColor(.gray)
-                                    Text("Failed")
-                                        .font(.caption2)
-                                        .foregroundColor(.gray)
-                                }
-                            )
-                    }
-                }
-            )
             .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }

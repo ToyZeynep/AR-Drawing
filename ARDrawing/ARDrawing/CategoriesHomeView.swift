@@ -8,6 +8,7 @@
 import SwiftUI
 import Firebase
 import FirebaseFirestore
+import FirebaseAnalytics
 import SDWebImageSwiftUI
 
 // MARK: - Models
@@ -58,11 +59,20 @@ class CategoryService: ObservableObject {
                     self?.isLoading = false
                     
                     if let error = error {
+                        Analytics.logEvent("category_load_failed", parameters: [
+                            "error_message": error.localizedDescription,
+                            "error_code": String((error as NSError).code),
+                            "location": "categories_list"
+                        ])
                         self?.errorMessage = error.localizedDescription
                         return
                     }
                     
                     guard let documents = snapshot?.documents else {
+                        Analytics.logEvent("category_load_failed", parameters: [
+                            "error_message": "No documents found",
+                            "location": "categories_list"
+                        ])
                         self?.errorMessage = "No active categories found"
                         return
                     }
@@ -96,6 +106,11 @@ class CategoryService: ObservableObject {
     func fetchCategoryDetail(categoryId: String, completion: @escaping (Category?) -> Void) {
         db.collection("categories").document(categoryId).getDocument { snapshot, error in
             if let error = error {
+                Analytics.logEvent("category_load_failed", parameters: [
+                    "error_message": error.localizedDescription,
+                    "category_id": categoryId,
+                    "location": "category_detail"
+                ])
                 print("Error fetching category: \(error)")
                 completion(nil)
                 return
@@ -107,6 +122,11 @@ class CategoryService: ObservableObject {
                   let isActive = data["isActive"] as? Bool,
                   let images = data["images"] as? [String],
                   isActive == true else {
+                Analytics.logEvent("category_load_failed", parameters: [
+                    "error_message": "Invalid category data",
+                    "category_id": categoryId,
+                    "location": "category_detail"
+                ])
                 completion(nil)
                 return
             }
@@ -150,6 +170,11 @@ struct CategoriesHomeView: View {
                         }
                         .pickerStyle(SegmentedPickerStyle())
                         .padding(.horizontal)
+                        .onChange(of: selectedMode) { newMode in
+                            Analytics.logEvent("drawing_mode_selected", parameters: [
+                                "mode": newMode == .trace ? "trace" : "scratch"
+                            ])
+                        }
                     }
                     .padding(.top)
                     
@@ -234,6 +259,16 @@ struct CategoriesHomeView: View {
                                         CategoryCard(category: category)
                                     }
                                     .buttonStyle(PlainButtonStyle())
+                                    .simultaneousGesture(
+                                        TapGesture().onEnded {
+                                            Analytics.logEvent("category_viewed", parameters: [
+                                                "category_name": category.name,
+                                                "category_id": category.id,
+                                                "image_count": category.imageCount,
+                                                "selected_mode": selectedMode == .trace ? "trace" : "scratch"
+                                            ])
+                                        }
+                                    )
                                 }
                             }
                             .padding(.horizontal)
@@ -244,6 +279,8 @@ struct CategoriesHomeView: View {
             }
             .onAppear {
                 categoryService.fetchCategories()
+               
+                Analytics.logEvent("app_opened", parameters: nil)
             }
             .sheet(isPresented: $showGalleryPicker) {
                 ImagePicker(selectedImage: $selectedImage)
@@ -271,6 +308,10 @@ struct CategoriesHomeView: View {
     
     private func handleImageSelection() {
         if selectedImage != nil {
+            Analytics.logEvent("image_selected", parameters: [
+                "source": showGalleryPicker ? "gallery" : "camera",
+                "mode": selectedMode == .trace ? "trace" : "scratch"
+            ])
             navigateToARView = true
         }
     }

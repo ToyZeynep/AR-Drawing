@@ -8,6 +8,7 @@
 import SwiftUI
 import PhotosUI
 import StoreKit
+import FirebaseAnalytics
 
 struct DetailView: View {
     var imageURL: String? = nil
@@ -96,6 +97,14 @@ struct DetailView: View {
                             Button(action: {
                                 withAnimation(.spring()) {
                                     isLocked.toggle()
+
+                                    if isLocked {
+                                        Analytics.logEvent("screen_locked", parameters: [
+                                            "mode": tracingMode == .trace ? "trace" : "scratch",
+                                            "zoom_level": String(format: "%.2f", finalZoom)
+                                        ])
+                                    }
+                                    
                                     if !isLocked && showOpacitySettings {
                                         showOpacitySettings = false
                                     }
@@ -345,14 +354,35 @@ struct DetailView: View {
 
     func loadImageFromURL(_ urlString: String, completion: @escaping (UIImage?) -> Void) {
         guard let url = URL(string: urlString) else {
+            Analytics.logEvent("image_load_failed", parameters: [
+                "error_type": "invalid_url",
+                "image_url": urlString,
+                "location": "detail_view"
+            ])
             completion(nil)
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        URLSession.shared.dataTask(with: url) { data, _, error in
+            if let error = error {
+                Analytics.logEvent("image_load_failed", parameters: [
+                    "error_type": "network_error",
+                    "error_message": error.localizedDescription,
+                    "image_url": urlString,
+                    "location": "detail_view"
+                ])
+                completion(nil)
+                return
+            }
+            
             if let data = data, let image = UIImage(data: data) {
                 completion(image)
             } else {
+                Analytics.logEvent("image_load_failed", parameters: [
+                    "error_type": "data_corruption",
+                    "image_url": urlString,
+                    "location": "detail_view"
+                ])
                 completion(nil)
             }
         }.resume()
