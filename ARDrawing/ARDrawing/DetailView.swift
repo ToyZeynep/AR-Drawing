@@ -8,7 +8,6 @@
 import SwiftUI
 import PhotosUI
 import StoreKit
-import FirebaseAnalytics
 
 struct DetailView: View {
     var imageURL: String? = nil
@@ -97,14 +96,6 @@ struct DetailView: View {
                             Button(action: {
                                 withAnimation(.spring()) {
                                     isLocked.toggle()
-
-                                    if isLocked {
-                                        Analytics.logEvent("screen_locked", parameters: [
-                                            "mode": tracingMode == .trace ? "trace" : "scratch",
-                                            "zoom_level": String(format: "%.2f", finalZoom)
-                                        ])
-                                    }
-                                    
                                     if !isLocked && showOpacitySettings {
                                         showOpacitySettings = false
                                     }
@@ -276,8 +267,6 @@ struct DetailView: View {
             UIScreen.main.brightness = previousBrightness
         }
     }
-    
-    // MARK: - App Store Review Request
     private func incrementUsageAndRequestReview() {
         let currentCount = UserDefaults.standard.integer(forKey: "trace_usage_count")
         let newCount = currentCount + 1
@@ -304,14 +293,12 @@ struct DetailView: View {
 
     @ViewBuilder
     func imageView(image: UIImage) -> some View {
-        let totalZoom = finalZoom * currentZoom
-        
         Image(uiImage: image)
             .resizable()
             .scaledToFit()
-            .opacity(totalZoom < 0.01 ? 0.01 : imageOpacity)
+            .opacity(imageOpacity)
             .frame(width: 300, height: 300)
-            .scaleEffect(max(totalZoom, 0.01))
+            .scaleEffect(finalZoom * currentZoom)
             .rotationEffect(finalAngle + rotationAngle)
             .offset(x: position.width + dragOffset.width,
                     y: position.height + dragOffset.height)
@@ -327,18 +314,16 @@ struct DetailView: View {
                                 .onEnded { value in
                                     let newX = position.width + value.translation.width
                                     let newY = position.height + value.translation.height
-                                    position.width = newX
-                                    position.height = newY
+                                    position.width = max(min(newX, 150), -150)
+                                    position.height = max(min(newY, 450), -150)
                                 },
                             MagnificationGesture()
                                 .updating($currentZoom) { value, state, _ in
-                                    let limitedValue = min(max(value, 0.5), 3.0)
-                                    state = limitedValue
+                                    state = value
                                 }
                                 .onEnded { value in
-                                    let limitedValue = min(max(value, 0.5), 3.0)
-                                    let newZoom = finalZoom * limitedValue
-                                    finalZoom = min(max(newZoom, 0.1), 5.0)
+                                    let newZoom = finalZoom * value
+                                    finalZoom = min(max(newZoom, 0.5), 2.5)
                                 }
                         ),
                         RotationGesture()
@@ -354,35 +339,14 @@ struct DetailView: View {
 
     func loadImageFromURL(_ urlString: String, completion: @escaping (UIImage?) -> Void) {
         guard let url = URL(string: urlString) else {
-            Analytics.logEvent("image_load_failed", parameters: [
-                "error_type": "invalid_url",
-                "image_url": urlString,
-                "location": "detail_view"
-            ])
             completion(nil)
             return
         }
 
-        URLSession.shared.dataTask(with: url) { data, _, error in
-            if let error = error {
-                Analytics.logEvent("image_load_failed", parameters: [
-                    "error_type": "network_error",
-                    "error_message": error.localizedDescription,
-                    "image_url": urlString,
-                    "location": "detail_view"
-                ])
-                completion(nil)
-                return
-            }
-            
+        URLSession.shared.dataTask(with: url) { data, _, _ in
             if let data = data, let image = UIImage(data: data) {
                 completion(image)
             } else {
-                Analytics.logEvent("image_load_failed", parameters: [
-                    "error_type": "data_corruption",
-                    "image_url": urlString,
-                    "location": "detail_view"
-                ])
                 completion(nil)
             }
         }.resume()
